@@ -1,0 +1,9 @@
+/target/
+/dist/
+/web/pkg/
+site.json
+*.log
+web/assets/art/*
+!web/assets/art/.gitkeep
+web/assets/backgrounds/*
+!web/assets/backgrounds/.gitkeep

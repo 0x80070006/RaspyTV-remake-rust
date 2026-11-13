@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>RaspyTV</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="layout-override.css">
+  <link rel="stylesheet" href="gallery.css">
+  <link rel="stylesheet" href="raspytv.css">
+</head>
+<body>
+  <video id="background-video" autoplay muted loop playsinline aria-hidden="true"></video>
+  <div class="background-scrim" aria-hidden="true"></div>
+  <div class="aurora one"></div><div class="aurora two"></div>
+  <main id="app" aria-live="polite"></main>
+  <div id="fade"></div>
+  <div id="toast"></div>
+  <!-- Toute la logique de la page est en Rust (crates/ui), compilée en WebAssembly. -->
+  <script type="module">
+    import init, * as ui from './pkg/raspytv_ui.js';
+    window.__raspyHome = ui;
+    await init();
+  </script>
+</body>
+</html>

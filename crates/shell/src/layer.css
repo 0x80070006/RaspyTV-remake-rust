@@ -1,0 +1,96 @@
+* { font-family: "DM Sans", "Cantarell", sans-serif; }
+window, .hotspot, .shell { background: transparent; }
+
+/* Barre latérale */
+.rail { background: rgba(12, 15, 24, 0.95); border: 1px solid rgba(255, 255, 255, 0.07); border-left: 0;
+        border-radius: 0 26px 26px 0; padding: 14px 11px; }
+.rail-item { min-width: 74px; min-height: 62px; padding: 6px 0; border: 0; border-radius: 16px;
+             background: transparent; color: #aab2c5; box-shadow: none; }
+.rail-item:hover { background: rgba(255, 255, 255, 0.07); color: #ffffff; }
+.rail-item.active { background: rgba(139, 123, 255, 0.17); color: #ffffff; box-shadow: inset 3px 0 0 #8b7bff; }
+.rail-item:focus { background: rgba(139, 123, 255, 0.30); color: #ffffff; box-shadow: inset 0 0 0 2px #ffffff; }
+.rail-item label { font-size: 11px; font-weight: 600; }
+.rail-volume { min-width: 32px; min-height: 40px; padding: 4px; border: 0; border-radius: 12px;
+               background: rgba(255, 255, 255, 0.05); color: #d7dceb; box-shadow: none; }
+.rail-volume:hover { background: rgba(255, 255, 255, 0.11); }
+.rail-volume:focus { box-shadow: inset 0 0 0 2px #ffffff; background: rgba(139, 123, 255, 0.30); }
+.rail-separator { min-height: 1px; background: rgba(255, 255, 255, 0.08); margin: 6px 10px; }
+.drawer { min-width: 250px; background: rgba(15, 18, 28, 0.97); border: 1px solid rgba(255, 255, 255, 0.07);
+          border-left: 0; border-radius: 0 22px 22px 0; padding: 14px 12px; }
+.drawer-title { color: #8e97ab; font-size: 11px; font-weight: 700; letter-spacing: 1px; padding: 2px 8px 10px; }
+.drawer-item { min-height: 48px; padding: 6px 10px; border: 0; border-radius: 13px; background: transparent;
+               color: #e8ecf6; box-shadow: none; }
+.drawer-item:hover { background: rgba(255, 255, 255, 0.07); }
+.drawer-item.active { background: rgba(139, 123, 255, 0.17); }
+.drawer-item:focus { background: rgba(139, 123, 255, 0.30); box-shadow: inset 0 0 0 2px #ffffff; }
+.drawer-item label { font-size: 14px; font-weight: 600; }
+.drawer-empty { color: #8e97ab; padding: 6px 8px; }
+
+/* Indicateur de volume */
+.osd { padding: 12px 16px; border-radius: 16px; background: rgba(10, 12, 20, 0.93);
+       border: 1px solid rgba(255, 255, 255, 0.09); color: #f3f5fb; }
+.osd-value { font-size: 15px; font-weight: 700; min-width: 50px; }
+.seg { min-width: 7px; min-height: 16px; border-radius: 2px; background: rgba(255, 255, 255, 0.14); }
+.seg.on { background: #8b7bff; }
+.osd.muted .seg.on { background: rgba(255, 255, 255, 0.35); }
+
+/* Panneau de la manette */
+.panel { padding: 22px; }
+.card { background: rgba(12, 15, 24, 0.97); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 26px;
+        padding: 24px 26px; color: #eef1f8; }
+.card-title { color: #8e97ab; font-size: 12px; font-weight: 700; letter-spacing: 1.2px; }
+.card-meta { color: #8e97ab; font-size: 13px; }
+.media-title { font-size: 24px; font-weight: 700; }
+.media-artist { color: #b6bdcc; font-size: 16px; }
+.media-empty { color: #8e97ab; font-size: 16px; }
+.art { border-radius: 14px; background: rgba(255, 255, 255, 0.06); }
+.time { color: #8e97ab; font-size: 13px; min-width: 46px; }
+scale trough { min-height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.14); }
+scale highlight { border-radius: 3px; background: #8b7bff; }
+scale slider { min-width: 16px; min-height: 16px; border-radius: 8px; background: #ffffff; border: 0; }
+scale:focus slider { box-shadow: 0 0 0 4px rgba(139, 123, 255, 0.55); }
+.control { min-width: 54px; min-height: 54px; border-radius: 27px; border: 0; background: rgba(255, 255, 255, 0.07);
+           color: #eef1f8; box-shadow: none; }
+.control.main { min-width: 66px; min-height: 66px; border-radius: 33px; background: #ffffff; color: #0b0e17; }
+.control:hover { background: rgba(255, 255, 255, 0.13); }
+.control.main:hover { background: #e7e9f2; }
+.control:focus { box-shadow: 0 0 0 3px #8b7bff; }
+.section-title { color: #8e97ab; font-size: 12px; font-weight: 700; letter-spacing: 1.2px; margin-top: 4px; }
+.volume-control { padding: 10px 12px; border-radius: 14px; }
+.volume-control.focused { background: rgba(139, 123, 255, 0.16); box-shadow: inset 0 0 0 2px #ffffff; }
+.volume-value { font-size: 16px; font-weight: 700; min-width: 54px; }
+.output { min-height: 46px; padding: 6px 12px; border: 0; border-radius: 13px; background: rgba(255, 255, 255, 0.04);
+          color: #e8ecf6; box-shadow: none; }
+.output:hover { background: rgba(255, 255, 255, 0.09); }
+.output:focus { box-shadow: inset 0 0 0 2px #ffffff; background: rgba(139, 123, 255, 0.22); }
+.output.active { background: rgba(139, 123, 255, 0.17); }
+.output-state { color: #8e97ab; font-size: 12px; font-weight: 600; }
+.output.active .output-state { color: #b9adff; }
+.battery-value { font-size: 44px; font-weight: 700; }
+.battery-none { font-size: 22px; font-weight: 700; }
+.battery-status { color: #b6bdcc; font-size: 15px; }
+progressbar trough { min-height: 12px; border-radius: 6px; background: rgba(255, 255, 255, 0.12); }
+progressbar progress { min-height: 12px; border-radius: 6px; background: #2fd16b; }
+.battery-low progressbar progress { background: #ff6b5b; }
+.action { min-height: 48px; border: 0; border-radius: 14px; background: rgba(255, 255, 255, 0.07); color: #eef1f8;
+          box-shadow: none; padding: 0 16px; }
+.action:hover { background: rgba(255, 255, 255, 0.13); }
+.action:focus { box-shadow: inset 0 0 0 2px #ffffff; background: rgba(139, 123, 255, 0.22); }
+.hint { color: #6f788c; font-size: 12px; }
+.dim { background-color: rgba(0, 0, 0, 0.5); }
+.power-box { padding: 12px; border-radius: 16px; background: rgba(255, 255, 255, 0.04); }
+.power-question { color: #d7dceb; font-size: 14px; font-weight: 600; }
+.action.danger { color: #ffb4a8; }
+.action.danger:focus { background: rgba(255, 107, 91, 0.22); }
+
+/* Clavier virtuel */
+.keyboard { background: rgba(10, 12, 20, 0.97); border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 12px 18px 16px; color: #eef1f8; }
+.kb-title { font-size: 16px; font-weight: 700; }
+.kb-hint { color: #8e97ab; font-size: 12px; }
+.kb-key { min-height: 44px; border: 0; border-radius: 10px; background: rgba(255, 255, 255, 0.08); color: #eef1f8; box-shadow: none; font-size: 17px; font-weight: 600; padding: 0 6px; }
+.kb-key:hover { background: rgba(255, 255, 255, 0.16); }
+.kb-key:active { background: rgba(139, 123, 255, 0.45); }
+.kb-mod { background: rgba(255, 255, 255, 0.04); color: #b6bdcc; font-size: 14px; }
+.kb-mod.active { background: rgba(139, 123, 255, 0.35); color: #ffffff; }
+.kb-space { min-width: 260px; }
+.kb-done { background: #8b7bff; color: #0b0e17; }

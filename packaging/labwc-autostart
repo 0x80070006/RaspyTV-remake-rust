@@ -1,0 +1,8 @@
+#!/bin/sh
+# Session kiosque RaspyTV (version Rust) : le compositeur démarre directement l'interface.
+# À copier dans ~/.config/labwc/autostart à la place de celui de la version Electron.
+/usr/bin/swaybg -i "$HOME/.local/share/raspytv-rs/web/assets/raspytv-boot.png" -m fill &
+/usr/bin/kanshi &
+systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+# Service utilisateur ; à défaut, la boucle kiosque relance l'interface après un plantage.
+(systemctl --user start raspytv-rs.service || "$HOME/.local/share/raspytv-rs/raspytv-kiosk") &

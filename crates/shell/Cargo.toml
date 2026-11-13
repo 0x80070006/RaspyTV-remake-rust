@@ -1,0 +1,31 @@
+[package]
+name = "raspytv"
+description = "Interface Smart TV pour Raspberry Pi : shell tao + wry, barre latérale GTK layer-shell."
+version.workspace = true
+publish = false
+edition.workspace = true
+default-run = "raspytv"
+
+[[bin]]
+name = "raspytv"
+path = "src/main.rs"
+
+[[bin]]
+name = "raspytv-kiosk"
+path = "src/kiosk.rs"
+
+[dependencies]
+raspytv-core = { path = "../core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+wry = "0.57"
+tao = "0.37"
+gilrs = "0.11"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+gdk = "0.18"
+glib = "0.18"
+gdk-pixbuf = "0.18"
+pango = "0.18"
+gtk-layer-shell = { version = "0.8", features = ["v0_6"] }  # Pi : libgtk-layer-shell 0.9

@@ -1,0 +1,21 @@
+[package]
+name = "raspytv-core"
+description = "Logique de RaspyTV indépendante de l'interface : configuration, Jellyfin, Moonlight, audio, système."
+version.workspace = true
+publish = false
+edition.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+ureq = { version = "3", features = ["json"] }
+url = "2"
+jiff = { version = "0.2", features = ["tzdb-bundle-always"] }
+chacha20poly1305 = "0.10"
+sha2 = "0.10"
+rand = "0.8"
+regex = "1"
+roxmltree = "0.20"
+sysinfo = { version = "0.37", default-features = false, features = ["system", "disk"] }
+if-addrs = "0.15"
+wait-timeout = "0.2"

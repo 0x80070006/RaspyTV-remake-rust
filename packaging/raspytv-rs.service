@@ -1,0 +1,17 @@
+[Unit]
+Description=RaspyTV (version Rust), interface de la TV
+# Au-delà de 10 échecs en 2 minutes, systemd arrête d'insister : l'erreur est alors durable.
+StartLimitIntervalSec=120
+StartLimitBurst=10
+
+[Service]
+# Sans session graphique, inutile de lancer l'interface : elle échouerait en boucle.
+ExecStartPre=/bin/sh -c 'test -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"'
+ExecStart=%h/.local/share/raspytv-rs/raspytv
+# Relancée quelle que soit la cause de l'arrêt : la TV ne reste jamais sans interface.
+Restart=always
+RestartSec=2
+TimeoutStopSec=10
+
+[Install]
+WantedBy=graphical-session.target
