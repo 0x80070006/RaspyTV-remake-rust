@@ -49,16 +49,17 @@ pub const NOUTUBE_SETTINGS: &str = r#"{"blockAds":true,"hideShorts":true,"sponso
 /// Il note aussi les commandes « titre précédent / suivant » déclarées par la page.
 pub fn noutube_init_script(source: &str) -> String {
     format!(
-        r#"(()=>{{const host=location.hostname;if(!(host==='youtube.com'||host.endsWith('.youtube.com')))return;const settings={NOUTUBE_SETTINGS};let active=false;
+        r#"(()=>{{const host=location.hostname;if(!(host==='youtube.com'||host.endsWith('.youtube.com')))return;const settings={NOUTUBE_SETTINGS};let active=false,failure='';
 try{{const session=navigator.mediaSession;if(session&&!window.__raspyMediaHandlers){{const handlers=window.__raspyMediaHandlers={{}};const declare=session.setActionHandler.bind(session);session.setActionHandler=(action,handler)=>{{handlers[action]=handler;return declare(action,handler)}}}}}}catch(e){{}}
+try{{if(!screen.orientation)Object.defineProperty(screen,'orientation',{{configurable:true,value:{{type:'landscape-primary',angle:0,onchange:null,addEventListener(){{}},removeEventListener(){{}},dispatchEvent(){{return true}},lock(){{return Promise.reject(new Error('unsupported'))}},unlock(){{}}}}}})}}catch(e){{}}
 window.NouTubeInitialSettings=settings;try{{localStorage.setItem('nou:settings',JSON.stringify(settings))}}catch(e){{}}
 try{{
 {source}
 const applyShorts=()=>{{if(!settings.hideShorts||document.getElementById('noutube-shorts'))return;window.NouTube?.hideShorts?.();const guide=document.createElement('style');guide.textContent='ytd-guide-entry-renderer:has(a[title="Shorts"]),ytd-mini-guide-entry-renderer:has(a[title="Shorts"]){{display:none!important}}';document.head.appendChild(guide)}};
 if(document.head)applyShorts();else document.addEventListener('DOMContentLoaded',applyShorts,{{once:true}});
 active=typeof window.NouTube==='object';
-}}catch(error){{console.error('NouTube',error)}}
-try{{window.ipc.postMessage(JSON.stringify({{t:'noutube',active,host}}))}}catch(e){{}}}})();"#
+}}catch(error){{console.error('NouTube',error);failure=(String(error)+' '+String(error&&error.stack||'')).slice(0,300)}}
+try{{window.ipc.postMessage(JSON.stringify({{t:'noutube',active,host,failure}}))}}catch(e){{}}}})();"#
     )
 }
 

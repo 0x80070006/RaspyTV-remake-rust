@@ -71,6 +71,31 @@ pub fn parse_games(stdout: &str, error: Option<&str>) -> Games {
     }
 }
 
+/// Dossier des jaquettes de Moonlight (`~/.cache/Moonlight Game Streaming Project/Moonlight/boxart`).
+pub fn boxart_dir() -> PathBuf {
+    std::env::var_os("XDG_CACHE_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| crate::paths::home().join(".cache"))
+        .join("Moonlight Game Streaming Project")
+        .join("Moonlight")
+        .join("boxart")
+}
+
+/// `file://…/boxart/<hôte>/<id>.png` → `/boxart/<hôte>/<id>.png` ; les URL http(s) restent telles quelles,
+/// et un fichier hors du dossier des jaquettes est ignoré.
+pub fn boxart_route(url: &str, dir: &Path) -> String {
+    if url.starts_with("http://") || url.starts_with("https://") {
+        return url.to_string();
+    }
+    let Some(file) = url.strip_prefix("file://") else { return String::new() };
+    match Path::new(file).strip_prefix(dir) {
+        Ok(relative) if relative.components().all(|c| matches!(c, std::path::Component::Normal(_))) => {
+            format!("/boxart/{}", relative.to_string_lossy().replace(std::path::MAIN_SEPARATOR, "/"))
+        }
+        _ => String::new(),
+    }
+}
+
 pub fn list_games(host: &str) -> Games {
     if host.is_empty() {
         return Games { unavailable: true, ..Games::default() };
@@ -193,6 +218,15 @@ pub fn prepare_kiosk() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn boxart_routes() {
+        let dir = Path::new("/home/tv/.cache/Moonlight Game Streaming Project/Moonlight/boxart");
+        assert_eq!(boxart_route("file:///home/tv/.cache/Moonlight Game Streaming Project/Moonlight/boxart/AB/12.png", dir), "/boxart/AB/12.png");
+        assert_eq!(boxart_route("file:///etc/passwd", dir), "");
+        assert_eq!(boxart_route("file:///home/tv/.cache/Moonlight Game Streaming Project/Moonlight/boxart/../x", dir), "");
+        assert_eq!(boxart_route("https://img.example/a.png", dir), "https://img.example/a.png");
+    }
 
     #[test]
     fn csv_with_quotes() {

@@ -60,6 +60,12 @@ pub fn load(file: &Path, key_file: &Path) -> Option<Session> {
     open(&std::fs::read(file).ok()?, key_file)
 }
 
+/// Session laissée en clair par la version Electron (`safeStorage` sans trousseau).
+pub fn import_legacy(file: &Path) -> Option<Session> {
+    let session: Session = serde_json::from_slice(&std::fs::read(file).ok()?).ok()?;
+    (!session.token.is_empty() && !session.user_id.is_empty()).then_some(session)
+}
+
 pub fn save(session: &Session, file: &Path, key_file: &Path) -> bool {
     match seal(session, key_file) {
         Some(bytes) => crate::fsutil::atomic_write(file, &bytes).is_ok(),

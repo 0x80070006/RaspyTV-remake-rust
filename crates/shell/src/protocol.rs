@@ -35,6 +35,8 @@ pub struct Shared {
     pub backgrounds: Vec<PathBuf>,
     pub jellyfin_origin: String,
     pub session: Arc<RwLock<Option<Session>>>,
+    /// Jaquettes téléchargées par Moonlight.
+    pub boxart: PathBuf,
 }
 
 fn mime(path: &Path) -> &'static str {
@@ -135,6 +137,9 @@ pub fn handle(shared: &Shared, request: Request<Vec<u8>>) -> Response<Cow<'stati
             }
             _ => not_found(),
         };
+    }
+    if let Some(name) = path.strip_prefix("/boxart/") {
+        return file(safe_join(&shared.boxart, name));
     }
     if let Some(name) = path.strip_prefix("/icons/") {
         return file(safe_join(&shared.icons, name));

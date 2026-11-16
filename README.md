@@ -168,15 +168,30 @@ Socket de commande `$XDG_RUNTIME_DIR/raspytv-nav.sock` : une commande JSON par c
 
 ## État des tests
 
+Essais du 16 novembre 2026 sur le Raspberry Pi 4 (Raspberry Pi OS 13, labwc, WebKitGTK 2.54), à la place du kiosque Electron :
+
 | Élément | Windows | Raspberry Pi |
 | --- | --- | --- |
-| `raspytv-core` (42 tests unitaires avec `ui`) | ✅ | — |
-| Accueil WASM (démo dans Chrome, navigation au clavier) | ✅ | non testé |
-| Shell : accueil, ouverture d'un service, retour, arrêt propre | ✅ (WebView2) | non testé |
-| Compilation croisée aarch64 + clippy du code Linux | ✅ (Docker) | — |
-| Barre latérale, OSD, panneau PS, clavier GTK layer-shell | — | non testé |
-| Moonlight, `pactl`, Bluetooth, squeekboard, alimentation | — | non testé |
-| Session Jellyfin, NouTube dans WebKitGTK | — | non testé |
+| `raspytv-core` et `raspytv-ui` (43 tests unitaires) | ✅ | — |
+| Compilation croisée aarch64 + clippy du code Linux | ✅ (Docker) | ✅ binaire lancé |
+| Accueil : bandeau, « Continuer », « Récemment ajoutés », images via le proxy | ✅ (démo) | ✅ |
+| Session Jellyfin reprise de la version Electron, chiffrée, restaurée dans Jellyfin Web | — | ✅ |
+| Lecture depuis l'accueil, `Échap` (lecteur puis accueil) | — | ✅ 1080p H.264, ~24 i/s, aucune image perdue |
+| Barre latérale (Share), tiroir Apps, navigation au clavier | — | ✅ |
+| Panneau PS : volume, sorties audio (Bluetooth compris), alimentation avec « Annuler » | — | ✅ |
+| OSD du volume, `pactl` | — | ✅ |
+| NouTube actif dans YouTube (Shorts masqués) | — | ✅ (connexion Google à refaire) |
+| Clavier virtuel : affichage sur un champ | — | ✅ (saisie non testée à distance) |
+| Mode Tableau, paramètres (Son), jeux Moonlight et jaquettes | — | ✅ |
+| Moonlight ouvert, barre au-dessus, retour à l'accueil | — | ✅ (flux de jeu non lancé) |
+| Twitch, Immich, Dashboard, squeekboard, redémarrage / extinction | ✅ Twitch (WebView2) | non testé |
+
+Réglages appliqués par défaut sous Linux, mesurés sur le Pi (une variable déjà définie l'emporte) :
+
+- `WEBKIT_DMABUF_RENDERER_FORCE_SHM=1` : les tampons GBM du rendu DMA-BUF donnent une image brouillée sur le GPU V3D. Désactiver complètement ce rendu limite la vidéo à ~4 images/s.
+- `GST_PLUGIN_FEATURE_RANK=v4l2h264dec:MAX,v4l2slh265dec:MAX` : décodage matériel H.264 / HEVC.
+
+Débogage : `RASPYTV_DEBUG=1` journalise les pages chargées et accepte sur le socket `{"action":"debug-eval","id":"home|<service>","js":"…"}` (résultat dans le journal). `RASPYTV_NOUTUBE_UA=webkit` garde le user-agent de WebKitGTK pour NouTube.
 
 ## Licences
 

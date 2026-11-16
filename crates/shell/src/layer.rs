@@ -193,6 +193,77 @@ fn cancel(slot: &RefCell<Option<glib::SourceId>>) {
     }
 }
 
+/// Entrée / Espace / ✕ : clique le bouton qui a le focus. L'activation par défaut de GTK
+/// passe par une capture du clavier, refusée aux surfaces layer-shell sous labwc.
+fn activate_focused(window: &gtk::Window, key: &gdk::keys::Key) -> bool {
+    if *key != keys::Return && *key != keys::KP_Enter && *key != keys::space && *key != keys::ISO_Enter {
+        return false;
+    }
+    match window.focused_widget().and_then(|w| w.downcast::<gtk::Button>().ok()) {
+        Some(button) => {
+            button.clicked();
+            true
+        }
+        None => false,
+    }
+}
+
+fn focusable_widgets(widget: &gtk::Widget, out: &mut Vec<gtk::Widget>) {
+    if !widget.is_visible() || !widget.is_mapped() || !widget.is_sensitive() {
+        return;
+    }
+    if widget.can_focus() && (widget.is::<gtk::Button>() || widget.is::<gtk::Scale>() || widget.is::<gtk::EventBox>()) {
+        out.push(widget.clone());
+        return;
+    }
+    if let Some(container) = widget.downcast_ref::<gtk::Container>() {
+        for child in container.children() {
+            focusable_widgets(&child, out);
+        }
+    }
+}
+
+/// Navigation spatiale dans une surface layer-shell (la navigation GTK par défaut n'y
+/// répond pas) : le voisin le plus proche dans la direction demandée.
+fn spatial_focus(window: &gtk::Window, direction: gtk::DirectionType) -> bool {
+    let mut items = Vec::new();
+    if let Some(child) = window.child() {
+        focusable_widgets(&child, &mut items);
+    }
+    let center = |w: &gtk::Widget| {
+        let a = w.allocation();
+        w.translate_coordinates(window, 0, 0).map(|(x, y)| (f64::from(x) + f64::from(a.width()) / 2.0, f64::from(y) + f64::from(a.height()) / 2.0))
+    };
+    let current = window.focused_widget().and_then(|f| items.iter().find(|w| **w == f || f.is_ancestor(*w)).cloned());
+    let Some(current) = current else {
+        return items.first().map(|w| w.grab_focus()).is_some();
+    };
+    let Some((ax, ay)) = center(&current) else { return false };
+    let horizontal = matches!(direction, gtk::DirectionType::Left | gtk::DirectionType::Right);
+    let winner = items
+        .iter()
+        .filter(|w| **w != current)
+        .filter_map(|w| center(w).map(|(x, y)| (w, x - ax, y - ay)))
+        .filter(|(_, dx, dy)| match direction {
+            gtk::DirectionType::Left => *dx < -2.0,
+            gtk::DirectionType::Right => *dx > 2.0,
+            gtk::DirectionType::Up => *dy < -2.0,
+            _ => *dy > 2.0,
+        })
+        .map(|(w, dx, dy)| {
+            let (main, cross) = if horizontal { (dx.abs(), dy.abs()) } else { (dy.abs(), dx.abs()) };
+            (w, main + cross * 2.4)
+        })
+        .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+    match winner {
+        Some((w, _)) => {
+            w.grab_focus();
+            true
+        }
+        None => false,
+    }
+}
+
 fn format_time(seconds: f64) -> String {
     let s = seconds.max(0.0) as u64;
     let (h, m, r) = (s / 3600, s / 60 % 60, s % 60);
@@ -494,6 +565,25 @@ impl Sidebar {
                 return Propagation::Stop;
             }
             me.restart_peek_timer();
+            if activate_focused(&me.sidebar.window, &event.keyval()) {
+                return Propagation::Stop;
+            }
+            let key = event.keyval();
+            let direction = if key == keys::Up {
+                Some(gtk::DirectionType::Up)
+            } else if key == keys::Down {
+                Some(gtk::DirectionType::Down)
+            } else if key == keys::Left {
+                Some(gtk::DirectionType::Left)
+            } else if key == keys::Right {
+                Some(gtk::DirectionType::Right)
+            } else {
+                None
+            };
+            if let Some(direction) = direction {
+                spatial_focus(&me.sidebar.window, direction);
+                return Propagation::Stop;
+            }
             Propagation::Proceed
         });
     }
@@ -1115,8 +1205,8 @@ impl Shared {
         } else {
             return Propagation::Proceed;
         };
-        if let Some(top) = widget.toplevel() {
-            top.child_focus(direction);
+        if let Some(window) = widget.toplevel().and_then(|t| t.downcast::<gtk::Window>().ok()) {
+            spatial_focus(&window, direction);
         }
         Propagation::Stop
     }
@@ -1128,6 +1218,13 @@ impl Shared {
         let key = event.keyval();
         if key == keys::Escape {
             self.close_panel();
+            return Propagation::Stop;
+        }
+        if activate_focused(&p.window, &key) {
+            return Propagation::Stop;
+        }
+        if key == keys::Up || key == keys::Down {
+            spatial_focus(&p.window, if key == keys::Up { gtk::DirectionType::Up } else { gtk::DirectionType::Down });
             return Propagation::Stop;
         }
         if key == keys::Left || key == keys::Right {
@@ -1143,9 +1240,14 @@ impl Shared {
         if focus == *p.volume.upcast_ref::<gtk::Widget>() || focus == *p.scale.upcast_ref::<gtk::Widget>() {
             return false;
         }
-        let direction = if right { gtk::DirectionType::Right } else { gtk::DirectionType::Left };
-        if let Some(parent) = focus.parent() {
-            if parent.child_focus(direction) {
+        // Précédent / Lecture / Suivant : d'abord le voisin sur la même ligne.
+        let row = p.play_button.parent();
+        if row.is_some() && focus.parent() == row {
+            let neighbour = row.as_ref().and_then(|r| r.downcast_ref::<gtk::Box>()).map(|r| r.children()).unwrap_or_default();
+            let index = neighbour.iter().position(|w| *w == focus).unwrap_or(0);
+            let next = if right { neighbour.get(index + 1) } else { index.checked_sub(1).and_then(|i| neighbour.get(i)) };
+            if let Some(next) = next {
+                next.grab_focus();
                 return true;
             }
         }

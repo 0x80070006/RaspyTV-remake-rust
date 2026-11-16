@@ -52,7 +52,16 @@ fn nav_socket(path: std::path::PathBuf, proxy: EventLoopProxy<UserEvent>) {
             let _ = stream.set_read_timeout(Some(Duration::from_millis(700)));
             let mut raw = Vec::new();
             let _ = stream.take(4096).read_to_end(&mut raw);
-            match serde_json::from_slice::<serde_json::Value>(&raw).ok().as_ref().and_then(protocol::parse) {
+            let value = serde_json::from_slice::<serde_json::Value>(&raw).ok();
+            // Mode débogage seulement : exécuter un script dans une vue et journaliser le résultat.
+            if crate::app::debug() && value.as_ref().and_then(|v| v["action"].as_str()) == Some("debug-eval") {
+                let value = value.unwrap_or_default();
+                let id = value["id"].as_str().unwrap_or("").to_string();
+                let js = value["js"].as_str().unwrap_or("").to_string();
+                let _ = proxy.send_event(UserEvent::Run(Box::new(move |app| app.debug_eval(&id, &js))));
+                continue;
+            }
+            match value.as_ref().and_then(protocol::parse) {
                 Some(command) => {
                     let _ = proxy.send_event(UserEvent::Command(command));
                 }

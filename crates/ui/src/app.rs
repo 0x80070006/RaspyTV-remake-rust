@@ -51,7 +51,6 @@ struct App {
     hero_retry: Option<i32>,
     hero_retry_delay: i32,
     hero_generation: u32,
-    hero_loading: bool,
     preloaded: Vec<String>,
     moonlight_generation: u32,
     moonlight_timer: Option<i32>,
@@ -83,7 +82,6 @@ impl Default for App {
             hero_retry: None,
             hero_retry_delay: 15_000,
             hero_generation: 0,
-            hero_loading: false,
             preloaded: Vec::new(),
             moonlight_generation: 0,
             moonlight_timer: None,
@@ -506,19 +504,14 @@ fn sync_background() {
 // ------------------------------------------------------------------ bandeau Jellyfin
 
 fn load_hero(force: bool) {
-    let (busy, timers) = app(|a| {
+    // Chaque rendu redemande le bandeau ; seule la réponse la plus récente s'affiche
+    // (le shell garde le résultat en cache, le serveur n'est pas sollicité deux fois).
+    let (generation, timers) = app(|a| {
         a.hero_generation += 1;
-        let busy = a.hero_loading && !force;
-        a.hero_loading = true;
-        (busy, [a.hero_timer.take(), a.hero_retry.take()])
+        (a.hero_generation, [a.hero_timer.take(), a.hero_retry.take()])
     });
     timers.into_iter().for_each(clear);
-    if busy {
-        return;
-    }
-    let generation = app(|a| a.hero_generation);
     call("jellyfin.hero", json!({"force": force}), move |result| {
-        app(|a| a.hero_loading = false);
         let current = app(|a| a.hero_generation == generation && a.page == "home" && a.state.as_ref().is_some_and(|s| s.active_id.is_none()));
         if !current {
             return;

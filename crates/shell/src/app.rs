@@ -169,7 +169,14 @@ impl App {
         let site = Site::load(&paths);
         let defaults = apps::default_apps(&site);
         let config = Config::load(&paths.config_file(), &defaults);
-        let session = vault::load(&paths.vault(), &paths.vault_key());
+        let session = vault::load(&paths.vault(), &paths.vault_key()).or_else(|| {
+            // Première ouverture : reprise de la session enregistrée par la version Electron.
+            let legacy = vault::import_legacy(&paths.legacy.join("jellyfin-session.bin"))?;
+            if vault::save(&legacy, &paths.vault(), &paths.vault_key()) {
+                rlog!("jellyfin session imported from the Electron version (encrypted)");
+            }
+            Some(legacy)
+        });
         let shared = Shared {
             web: paths.web.clone(),
             icons: paths.icons(),
@@ -177,19 +184,21 @@ impl App {
             backgrounds: paths.background_dirs().to_vec(),
             jellyfin_origin: site.jellyfin_origin(),
             session: Arc::new(RwLock::new(session)),
+            boxart: moonlight::boxart_dir(),
         };
         let host = Host::new(&window);
         let home_dir = paths.web_data("home");
         raspytv_core::fsutil::ensure_private_dir(&home_dir);
         let mut home_context = WebContext::new(Some(home_dir));
         let home = Self::build_home(&host, &window, &proxy, &shared, &mut home_context);
-        let loading = WebViewBuilder::new_with_web_context(&mut home_context)
-            .with_url(protocol::home_url("loading.html"))
-            .with_background_color((7, 9, 16, 255))
-            .with_custom_protocol(protocol::SCHEME.into(), {
-                let shared = shared.clone();
-                move |_id, request| protocol::handle(&shared, request)
-            });
+        let loading =
+            WebViewBuilder::new_with_web_context(&mut home_context).with_url(protocol::home_url("loading.html")).with_background_color((7, 9, 16, 255));
+        // Sous Linux, le protocole est enregistré une fois par contexte web (déjà fait par l'accueil).
+        #[cfg(not(target_os = "linux"))]
+        let loading = loading.with_custom_protocol(protocol::SCHEME.into(), {
+            let shared = shared.clone();
+            move |_id, request| protocol::handle(&shared, request)
+        });
         let loading = host.build_loading(loading, &window).map_err(|e| rlog!("loading view failure {e}")).ok();
         host.present("home", &[("home", &home)]);
         let tv_adapter = read_inject(&paths, "tv-input-adapter.js");
@@ -282,6 +291,17 @@ impl App {
     }
 
     /// Exécute un script dans une vue et rappelle `then` avec le résultat (JSON brut).
+    /// `RASPYTV_DEBUG=1` : évaluation d'un script dans une vue (`home` ou un service), résultat au journal.
+    #[cfg_attr(not(unix), allow(dead_code))]
+    pub fn debug_eval(&self, id: &str, js: &str) {
+        let report = |value: String| rlog!("debug-eval: {}", value.chars().take(3000).collect::<String>());
+        if id == "home" {
+            let _ = self.home.evaluate_script_with_callback(js, report);
+        } else {
+            self.eval_view(id, js, move |_, value| report(value));
+        }
+    }
+
     fn eval_view(&self, id: &str, script: &str, then: impl FnOnce(&mut App, String) + Send + 'static) {
         let Some(view) = self.views.get(id) else { return };
         let proxy = self.proxy.clone();
@@ -511,7 +531,9 @@ impl App {
         let ipc_proxy = self.proxy.clone();
         let load_proxy = self.proxy.clone();
         let (ipc_id, load_id) = (id.clone(), id.clone());
-        let user_agent = service.noutube.then_some(CHROME_USER_AGENT);
+        // RASPYTV_NOUTUBE_UA=webkit : garder le user-agent de WebKitGTK au lieu de se présenter comme Chrome.
+        let webkit_ua = std::env::var("RASPYTV_NOUTUBE_UA").is_ok_and(|v| v == "webkit");
+        let user_agent = (service.noutube && !webkit_ua).then_some(CHROME_USER_AGENT);
         let partition = service.partition().to_string();
         let mut context = self.take_context(&partition);
         let mut builder = WebViewBuilder::new_with_web_context(&mut context)
@@ -629,7 +651,7 @@ impl App {
         if !finished {
             return;
         }
-        if cfg!(debug_assertions) {
+        if debug() {
             rlog!("page {id} {url}");
         }
         if view.restoring {
@@ -678,7 +700,8 @@ impl App {
             "noutube" => {
                 let host: String = message.get("host").and_then(Value::as_str).unwrap_or("").chars().take(60).collect();
                 let active = message.get("active") == Some(&Value::Bool(true));
-                rlog!("noutube {} {host}", if active { "actif" } else { "INACTIF" });
+                let failure: String = message.get("failure").and_then(Value::as_str).unwrap_or("").chars().take(300).collect();
+                rlog!("noutube {} {host} {failure}", if active { "actif" } else { "INACTIF" });
             }
             _ => {}
         }
@@ -894,7 +917,13 @@ impl App {
                 }
                 games
             },
-            move |app, games| app.reply(id, Ok(serde_json::to_value(games).unwrap_or(Value::Null))),
+            move |app, mut games| {
+                // Les jaquettes sont des fichiers locaux : servies par le protocole de l'accueil.
+                for game in &mut games.games {
+                    game.boxart = moonlight::boxart_route(&game.boxart, &app.shared().boxart);
+                }
+                app.reply(id, Ok(serde_json::to_value(games).unwrap_or(Value::Null)))
+            },
         );
     }
 
@@ -1612,6 +1641,12 @@ impl App {
         self.stop_native();
         let _ = std::fs::remove_file(self.paths.panel_flag(&crate::socket_prefix()));
     }
+}
+
+/// Mode débogage (`RASPYTV_DEBUG=1`) : journal détaillé et évaluation de scripts par le socket.
+pub fn debug() -> bool {
+    static DEBUG: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *DEBUG.get_or_init(|| cfg!(debug_assertions) || std::env::var("RASPYTV_DEBUG").is_ok_and(|v| v == "1"))
 }
 
 fn url_origin(url: &str) -> String {

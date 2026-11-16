@@ -46,6 +46,16 @@ fn self_test(app: &App) {
 }
 
 fn main() {
+    // Raspberry Pi 4 (V3D), réglages mesurés sur la TV :
+    // - les tampons GBM du rendu DMA-BUF de WebKitGTK donnent une image brouillée ; la mémoire
+    //   partagée est nette, et bien plus fluide que le rendu DMA-BUF désactivé (24 i/s contre 4) ;
+    // - les décodeurs matériels V4L2 (H.264, HEVC) passent devant le décodage logiciel.
+    #[cfg(target_os = "linux")]
+    for (name, value) in [("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1"), ("GST_PLUGIN_FEATURE_RANK", "v4l2h264dec:MAX,v4l2slh265dec:MAX")] {
+        if std::env::var_os(name).is_none() {
+            std::env::set_var(name, value);
+        }
+    }
     let paths = Paths::from_env();
     paths.ensure();
     raspytv_core::log::init(paths.logs());
