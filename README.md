@@ -126,14 +126,14 @@ cargo clippy -p raspytv-ui --target wasm32-unknown-unknown -- -D warnings
 
 ## Installation sur le Raspberry Pi
 
-Copiez `dist/raspytv-rs-aarch64.tar.gz` sur le Pi, décompressez-le, puis lancez `raspytv-rs/install.sh`. Le script :
+Téléchargez `raspytv-rs-aarch64.tar.gz` depuis les [releases](https://github.com/0x80070006/RaspyTV-remake-rust/releases) (ou produisez-le avec `scripts/package.sh`), copiez-le sur le Pi, décompressez-le, puis lancez `raspytv-rs/install.sh`. Le script :
 
 - installe `libwebkit2gtk-4.1-0` (et vérifie `libgtk-layer-shell0`, `pulseaudio-utils`, `bluez`, `playerctl`) ;
 - copie les binaires et `web/` dans `~/.local/share/raspytv-rs/` ;
 - crée `~/.config/raspytv-rs/site.json`, en reprenant celui de la version Electron s'il existe ;
 - installe le service utilisateur `raspytv-rs.service` **sans l'activer**.
 
-Pour l'essayer, arrêtez d'abord la version Electron (`systemctl --user stop raspytv`), puis lancez `systemctl --user start raspytv-rs`. Pour en faire l'interface par défaut, copiez `packaging/labwc-autostart` dans `~/.config/labwc/autostart`.
+Pour l'essayer, arrêtez d'abord la version Electron (`systemctl --user stop raspytv`), puis lancez `systemctl --user start raspytv-rs`. Pour en faire l'interface par défaut, sauvegardez `~/.config/labwc/autostart`, puis remplacez-le par `packaging/labwc-autostart`. Celui-ci lance `raspytv-rs.service` ; en secours, il passe par la boucle `raspytv-kiosk`, puis par la version Electron si elle est encore installée.
 
 Redémarrer et Éteindre demandent une règle sudo explicite, par exemple dans `/etc/sudoers.d/raspytv` :
 
